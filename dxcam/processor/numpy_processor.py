@@ -5,16 +5,12 @@ from .base import Processor
 
 class NumpyProcessor(Processor):
     def __init__(self, color_mode):
-        self.cvtcolor = None
-        self.color_mode = color_mode
-        if self.color_mode=='BGRA':
-            self.color_mode = None
-
-    def process_cvtcolor(self, image):
         import cv2
 
-        # only one time process
-        if self.cvtcolor is None:
+        self.color_mode = color_mode if color_mode != 'BGRA' else None
+
+        # Determine the color mapping at initialization.
+        if self.color_mode is not None:
             color_mapping = {
                 "RGB": cv2.COLOR_BGRA2RGB,
                 "RGBA": cv2.COLOR_BGRA2RGBA,
@@ -25,10 +21,14 @@ class NumpyProcessor(Processor):
             if cv2_code != cv2.COLOR_BGRA2GRAY:
                 self.cvtcolor = lambda image: cv2.cvtColor(image, cv2_code)
             else:
-                self.cvtcolor = lambda image: cv2.cvtColor(image, cv2_code)[
-                    ..., np.newaxis
-                ] 
-        return self.cvtcolor(image)
+                self.cvtcolor = lambda image: cv2.cvtColor(image, cv2_code)[..., np.newaxis]
+        else:
+            self.cvtcolor = None  # No color conversion is necessary.
+
+    def process_cvtcolor(self, image):
+        if self.cvtcolor is not None:
+            return self.cvtcolor(image)
+        return image
 
     def process(self, rect, width, height, region, rotation_angle):
         pitch = int(rect.Pitch)
